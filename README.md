@@ -26,7 +26,7 @@ powerTraces = pd.read_csv("power.csv").values
 ```py
 cpaOBJ = CPA()
 ```
-* Using methods .SetPlainTexts() and .SetPowerTraces(), we assign our measurements to numpy arrays in the class
+* Using .SetPlainTexts() and .SetPowerTraces() methods, we assign our measurements and plaintexts to numpy arrays in the class
 ```py
 cpaOBJ.SetPlainTexts(plain)
 cpaOBJ.SetPowerTraces(powerTraces)
