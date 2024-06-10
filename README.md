@@ -48,6 +48,7 @@ cpaOBJ.CpaOnDesiredKeyByte(4) # In this example, CPA attacks on the 4th key byte
 ### GradualCpaOnFirstKeyByte(stepSize):
 Performs CPA with gradually increasing data-set sizes (which are generated automatically) on the first key byte of the AES-128 and plots the final correlation values for each key hypothesis as well as a plot for correlation values for different number of traces.
 ```py
-cpaOBJ.GradualCpaOnFirstKeyByte(1000) # In this example, CPA attack will be performed on the data-set sizes of 1000, 2000, ... 
+cpaOBJ.GradualCpaOnFirstKeyByte(1000) # In this example, CPA attack will be performed on
+                                      # the data-set sizes which are integer multiples of 1000 
 ```
   
