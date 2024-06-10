@@ -45,4 +45,9 @@ Performs CPA on a specified key byte of the AES-128 and plots the final correlat
 ```py
 cpaOBJ.CpaOnDesiredKeyByte(4) # In this example, CPA attacks on the 4th key byte
 ```
+### GradualCpaOnFirstKeyByte(stepSize):
+Performs CPA with gradually increasing data-set sizes on the first key byte of the AES-128 and plots the final correlation values for each key hypothesis as well as a plot for correlation values for different number of traces.
+```py
+cpaOBJ.CpaOnDesiredKeyByte(4) # In this example, CPA attacks on the 4th key byte
+```
   
