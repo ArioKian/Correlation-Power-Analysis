@@ -35,9 +35,14 @@ cpaOBJ.SetPowerTraces(powerTraces)
 * Now you are able to run different methods of CPA based on what you need.
 
 ## Different CPA Methods
-### cpaOBJ.CpaOnFirstKeyByte():
-performs CPA on the first key byte of the AES-128 and plots the final correlation values for each key hypothesis
+### CpaOnFirstKeyByte():
+Performs CPA on the first key byte of the AES-128 and plots the final correlation values for each key hypothesis.
 ```py
 cpaOBJ.CpaOnFirstKeyByte()
+```
+### CpaOnDesiredKeyByte(keyByteNum):
+Performs CPA on a specified key byte of the AES-128 and plots the final correlation values for each key hypothesis.
+```py
+cpaOBJ.CpaOnDesiredKeyByte(4) # In this example, CPA attacks on the 4th key byte
 ```
   
