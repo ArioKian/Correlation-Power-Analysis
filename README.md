@@ -20,8 +20,8 @@ from CorrelationPowerAnalysis import CpaOnAES128 as CPA
 ```
 * In the example project, we use pandas to read the input plaintexts and their equivalent power samples.
 ```py
-plain = pd.read_csv("plaintexts.csv").values
-powerTraces = pd.read_csv("traces.csv").values
+plain = pd.read_csv("plaintexts.csv", header=None).values
+powerTraces = pd.read_csv("traces.csv", header=None).values
 ```
 * Create an instance from your desired class.
 ```py
