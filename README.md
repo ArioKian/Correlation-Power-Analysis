@@ -38,7 +38,7 @@ cpaOBJ.SetPowerTraces(powerTraces)
 ### CpaOnFirstKeyByte():
 Performs CPA on the first key byte of the AES-128 and plots the final correlation values for each key hypothesis.
 ```py
-cpaOBJ.CpaOnFirstKeyByte()
+cpaOBJ.CpaOnFirstKeyByte()  #It is equivalent to cpaOBJ.CpaOnDesiredKeyByte(1)
 ```
 ### CpaOnDesiredKeyByte(keyByteNum):
 Performs CPA on a specified key byte of the AES-128 and plots the final correlation values for each key hypothesis.
