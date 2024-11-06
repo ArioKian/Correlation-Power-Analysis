@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+import os
 
 class CpaOnAES128:
     sboxTable = (
@@ -63,46 +65,60 @@ class CpaOnAES128:
         return self.HammingWeight(num1^num2)
 
     def CreateHypothesisMatrix(self, byteNumber):
+        print("Creating Hypothesis Matrix:")
         keyHypo = [i for i in range(256)]
         self.hypothesisMatrix = np.zeros((len(self.plainTexts), len(keyHypo)))
         for i in range(len(self.plainTexts)):
             for j in range(len(keyHypo)):
                 sboxResult = self.Sbox(self.plainTexts[i][byteNumber] ^ keyHypo[j])
                 self.hypothesisMatrix[i][j] = self.HammingWeight(sboxResult)
+            self.ProgressBar(i,len(self.plainTexts)-1)
+        print("")
 
-
-    def GradualCreateHypothesisMatrix(self, byteNumber):
+    def GradualCreateHypothesisMatrix(self, byteNumber, numOfTracesUsed):
+        print(f"Creating Hypothesis Matrix For {numOfTracesUsed} Number of Traces:")
         keyHypo = [i for i in range(256)]
         self.hypothesisMatrix = np.zeros((len(self.plainTextsTemp), len(keyHypo)))
         for i in range(len(self.plainTextsTemp)):
             for j in range(len(keyHypo)):
                 sboxResult = self.Sbox(self.plainTextsTemp[i][byteNumber] ^ keyHypo[j])
                 self.hypothesisMatrix[i][j] = self.HammingWeight(sboxResult)
+            self.ProgressBar(i,len(self.plainTextsTemp)-1)
+        print("")
 
 
     def NumpyPearsonCorrelation(self, h , p):
         return np.corrcoef(h , p)[0][1]
 
     def CreateCorrelationMatrix(self):
+        print("Creating Correlation Matrix:")
         self.correlationMatrix = np.zeros([256,self.powerTraces.shape[1]])
         for i in range(256):
             for j in range(self.powerTraces.shape[1]):
                 self.correlationMatrix[i][j] = self.NumpyPearsonCorrelation(self.hypothesisMatrix[:,i] , self.powerTraces[:,j])
+            self.ProgressBar(i,255)
+        print("")    
 
 
-    def GradualCreateCorrelationMatrix(self):
+    def GradualCreateCorrelationMatrix(self, numOfTracesUsed):
+        print(f"Creating Correlation Matrix For {numOfTracesUsed} Number of Traces:")
         self.correlationMatrix = np.zeros([256,self.powerTracesTemp.shape[1]])
         for i in range(256):
             for j in range(self.powerTracesTemp.shape[1]):
                 self.correlationMatrix[i][j] = self.NumpyPearsonCorrelation(self.hypothesisMatrix[:,i] , self.powerTracesTemp[:,j])
+            self.ProgressBar(i,255)
+        print("")
 
     
 
     def FindMaxCorrValueForEachKeyHypo(self):
+        print("Analyzing...")
         self.maxCorrForEachKeyHypo = np.zeros([256])
         for i in range(256):
             maxCorrValIndex = np.argmax(abs(self.correlationMatrix[i]))
             self.maxCorrForEachKeyHypo[i]=self.correlationMatrix[i][maxCorrValIndex]
+            self.ProgressBar(i,255)
+        print("")
 
     def FindKeyHypoWithMaxCorr(self):
         KeyVal = np.argmax(abs(self.maxCorrForEachKeyHypo))
@@ -113,10 +129,35 @@ class CpaOnAES128:
         if(self.isNthKeyByte):
             self.nthKeyByte = KeyVal
 
+    def PlotCorrelationGraph(self):   
+        self.CheckOutputsDirectory()
+        
+        xmax = np.argmax(self.maxCorrForEachKeyHypo)
+        ymax = self.maxCorrForEachKeyHypo.max()
+        ymin = self.maxCorrForEachKeyHypo.min()
+
+        fig, ax = plt.subplots(1,1,figsize=(10, 6))
+        ax.set_title("Final Correlation Value for Each Hypothesis")
+        ax.set_xlabel("Key Byte Hypothesis")
+        ax.set_ylabel("correlation value")
+        ax.set_ylim(ymin-0.2, ymax+0.2)
+        ax.stem(self.maxCorrForEachKeyHypo)
+
+        text= "KeyValue={}, CorrValue={:.3f}".format(xmax, ymax)
+        bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
+        arrowprops=dict(arrowstyle="->",connectionstyle="angle,angleA=0,angleB=60")
+        kw = dict(xycoords='data',textcoords="axes fraction",
+                  arrowprops=arrowprops, bbox=bbox_props, ha="right", va="top")
+        ax.annotate(text, xy=(xmax, ymax), xytext=(0.99,0.99), **kw)
+        plt.savefig("./Outputs/singleRunOutput.jpg")
+        plt.savefig("./Outputs/singleRunOutput.pdf")
+        plt.show()
+        
 
     
     def PlotGradualCorrelationGraph(self):
-
+        self.CheckOutputsDirectory()
+        
         xmax = np.argmax(self.maxCorrForEachKeyHypo)
         ymax = self.maxCorrForEachKeyHypo.max()
         ymin = self.maxCorrForEachKeyHypo.min()
@@ -128,7 +169,7 @@ class CpaOnAES128:
         ax1.set_ylim(ymin-0.2, ymax+0.2)
         ax1.stem(self.maxCorrForEachKeyHypo)
 
-        text= "x={}, y={:.3f}".format(xmax, ymax)
+        text= "KeyValue={}, CorrValue={:.3f}".format(xmax, ymax)
         bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
         arrowprops=dict(arrowstyle="->",connectionstyle="angle,angleA=0,angleB=60")
         kw = dict(xycoords='data',textcoords="axes fraction",
@@ -144,12 +185,11 @@ class CpaOnAES128:
                 gradualCorrForEachKeyHypo[j][i]= (self.gradualMaxCorrForEachKeyHypo)[i][j]
 
         for i in range(256):
-            if i==xmax:
-                ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[i], color="red")  
-            else:
-                ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[i], color="gray")
+            ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[i], color="gray")
+        ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[xmax], color="red")
         fig.subplots_adjust(hspace=0.5)
-        plt.figure(figsize=(100,60))
+        plt.savefig("./Outputs/gradualRunOutput.jpg")
+        plt.savefig("./Outputs/gradualRunOutput.pdf")
         plt.show()
     
 
@@ -164,6 +204,7 @@ class CpaOnAES128:
         self.FindKeyHypoWithMaxCorr()
         print(f"First Key Byte Value: Dec: {self.firstKeyByte}, Hex: {hex(self.firstKeyByte)}")
         #plt.plot(self.maxCorrForEachKeyHypo)
+        self.PlotCorrelationGraph()
 
 
     def GradualCpaOnFirstKeyByte(self, stepSize):
@@ -179,8 +220,8 @@ class CpaOnAES128:
             self.plainTextsTemp = self.plainTexts[0:numOfTracesUsed,:]
             self.powerTracesTemp = np.zeros([numOfTracesUsed,self.powerTraces.shape[1]])
             self.powerTracesTemp = self.powerTraces[0:numOfTracesUsed,:]
-            self.GradualCreateHypothesisMatrix(0)
-            self.GradualCreateCorrelationMatrix()
+            self.GradualCreateHypothesisMatrix(0 , numOfTracesUsed)
+            self.GradualCreateCorrelationMatrix(numOfTracesUsed)
             self.FindMaxCorrValueForEachKeyHypo()
             self.gradualMaxCorrForEachKeyHypo.append(self.maxCorrForEachKeyHypo)
             currentStepSize = currentStepSize + stepSize
@@ -201,5 +242,60 @@ class CpaOnAES128:
         self.FindMaxCorrValueForEachKeyHypo()
         self.FindKeyHypoWithMaxCorr()
         print(f"Key Byte Num{keyByteNum} Value: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
-        plt.plot(self.maxCorrForEachKeyHypo)
+        #plt.plot(self.maxCorrForEachKeyHypo)
+        self.PlotCorrelationGraph()
 
+
+    def GradualCpaOnDesiredKeyByte(self, keyByteNum, stepSize):
+        self.isFirstKeyByte = False
+        self.isAllKeyBytes = False
+        self.isNthKeyByte = True
+        self.gradualMaxCorrForEachKeyHypo = []
+        self.stepSizes = []
+        currentStepSize = 0
+        for numOfTracesUsed in range(stepSize,len(self.plainTexts),stepSize):
+            print(f"Running CPA with {numOfTracesUsed} number of traces")
+            self.plainTextsTemp = np.zeros([numOfTracesUsed,self.plainTexts.shape[1]])
+            self.plainTextsTemp = self.plainTexts[0:numOfTracesUsed,:]
+            self.powerTracesTemp = np.zeros([numOfTracesUsed,self.powerTraces.shape[1]])
+            self.powerTracesTemp = self.powerTraces[0:numOfTracesUsed,:]
+            self.GradualCreateHypothesisMatrix(keyByteNum-1)
+            self.GradualCreateCorrelationMatrix()
+            self.FindMaxCorrValueForEachKeyHypo()
+            self.gradualMaxCorrForEachKeyHypo.append(self.maxCorrForEachKeyHypo)
+            currentStepSize = currentStepSize + stepSize
+            self.stepSizes.append(currentStepSize)
+            self.FindKeyHypoWithMaxCorr()
+            print(f"Key Byte Num{keyByteNum} Value for {numOfTracesUsed} number of traces: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
+        print(f"Key Byte Num{keyByteNum} Value: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
+        self.PlotGradualCorrelationGraph()
+        
+
+    def ProgressBar(self, count_value, total, suffix=''):
+        bar_length = 100
+        filled_up_Length = int(round(bar_length* count_value / float(total)))
+        percentage = round(100.0 * count_value/float(total),1)
+        bar = '=' * filled_up_Length + '-' * (bar_length - filled_up_Length)
+        sys.stdout.write('[%s] %s%s ...%s\r' %(bar, percentage, '%', suffix))
+        sys.stdout.flush()
+
+
+    def DeleteFilesInDirectory(self, directoryPath):
+        try:
+            files = os.listdir(directoryPath)
+            for file in files:
+                filePath = os.path.join(directoryPath, file)
+                if os.path.isfile(filePath):
+                    os.remove(filePath)
+            print("All previous output files deleted successfully.")
+        except OSError:
+            print("Error occurred while deleting previous output files.")
+
+
+    def CheckOutputsDirectory(self):
+        isDirExist = os.path.exists('Outputs')
+        if isDirExist:
+            self.DeleteFilesInDirectory('./Outputs')
+        else:
+            os.makedirs('Outputs')
+        
