@@ -58,3 +58,6 @@ Performs CPA with gradually increasing data-set sizes (which are generated autom
 cpaOBJ.GradualCpaOnDesiredKeyByte(4,1000) # In this example, CPA attack will be performed on the 4th key byte
                                       # with the data-set sizes which are integer multiples of 1000 (1000,2000,...)
 ```
+
+## Acknowledgement
+Special thanks to Dr. Ali Jahanian (https://scholar.google.com/citations?user=gTht4nwAAAAJ&hl=en) and Hamed Hosseintalaee (https://scholar.google.com/citations?user=g3ETtdAAAAAJ&hl=en) for providing the necessary files, including power traces and their corresponding plaintexts, for the example project in this repository 
