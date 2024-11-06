@@ -20,8 +20,8 @@ from CorrelationPowerAnalysis import CpaOnAES128 as CPA
 ```
 * In the example project, we use pandas to read the input plaintexts and their equivalent power samples.
 ```py
-plain = pd.read_csv("plain.csv").values
-powerTraces = pd.read_csv("power.csv").values
+plain = pd.read_csv("plaintexts.csv").values
+powerTraces = pd.read_csv("traces.csv").values
 ```
 * Create an instance from your desired class.
 ```py
@@ -60,9 +60,9 @@ cpaOBJ.GradualCpaOnDesiredKeyByte(4,1000) # In this example, CPA attack will be 
 ```
 
 ## Example Project
-In the example project, you are provided with the power traces acquired during the execution of the AES-128 algorithm on a STM32F4 microcontroller as well as the plaintexts used for the encryption process. Power traces and plaintexts are stored in different CSV files, and they can simply be accessible by extracting the zip files named as ExampleProjectFiles%.zip. 
+In the example project, you are provided with the power traces acquired during the execution of the AES-128 algorithm on a STM32F4 microcontroller as well as the plaintexts used for the encryption process. Power traces and plaintexts are stored in different CSV files, and they can simply be accessible by extracting the RAR files named as ExampleProjectFiles.part0%.rar. 
 You can simply follow these steps to run the example project:
-* Extract the example project zip files in order to access the plaintexts.csv and traces.csv
+* Extract the example project RAR files in order to access the plaintexts.csv and traces.csv
 * Put CorrelationPowerAnalysis.py, ExampleProject.py, plaintexts.csv, and traces.csv in a same desired directory on your machine
 * Run ExampleProject.py
 
