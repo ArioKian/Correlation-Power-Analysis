@@ -65,6 +65,7 @@ You can simply follow these steps to run the example project:
 * Extract the example project RAR files in order to access the plaintexts.csv and traces.csv
 * Put CorrelationPowerAnalysis.py, ExampleProject.py, plaintexts.csv, and traces.csv in a same desired directory on your machine
 * Run ExampleProject.py
+* (NOTE) --- In this example, for more simplicity, the correct or expected value of each Key Byte to recover is the same as its byte number (for example Key Byte num1: Dex=1/Hex=0x01, or Key Byte num10: Dec=10/Hex=0x0A)
 
 ## Acknowledgement
 Special thanks to Dr. Ali Jahanian (https://scholar.google.com/citations?user=gTht4nwAAAAJ&hl=en) and Hamed Hosseintalaee (https://scholar.google.com/citations?user=g3ETtdAAAAAJ&hl=en) for providing the necessary files, including power traces and their corresponding plaintexts, for the example project in this repository 
