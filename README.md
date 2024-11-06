@@ -61,6 +61,10 @@ cpaOBJ.GradualCpaOnDesiredKeyByte(4,1000) # In this example, CPA attack will be 
 
 ## Example Project
 In the example project, you are provided with the power traces acquired during the execution of the AES-128 algorithm on a STM32F4 microcontroller as well as the plaintexts used for the encryption process. Power traces and plaintexts are stored in different CSV files, and they can simply be accessible by extracting the zip files named as ExampleProjectFiles%.zip. 
+You can simply follow these steps to run the example project:
+* Extract the example project zip files in order to access the plaintexts.csv and traces.csv
+* Put CorrelationPowerAnalysis.py, ExampleProject.py, plaintexts.csv, and traces.csv in a same desired directory on your machine
+* Run ExampleProject.py
 
 ## Acknowledgement
 Special thanks to Dr. Ali Jahanian (https://scholar.google.com/citations?user=gTht4nwAAAAJ&hl=en) and Hamed Hosseintalaee (https://scholar.google.com/citations?user=g3ETtdAAAAAJ&hl=en) for providing the necessary files, including power traces and their corresponding plaintexts, for the example project in this repository 
