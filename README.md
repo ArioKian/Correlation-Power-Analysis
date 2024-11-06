@@ -59,5 +59,8 @@ cpaOBJ.GradualCpaOnDesiredKeyByte(4,1000) # In this example, CPA attack will be 
                                       # with the data-set sizes which are integer multiples of 1000 (1000,2000,...)
 ```
 
+## Example Project
+In the example project, you are provided with the power traces acquired during the execution of the AES-128 algorithm on a STM32F4 microcontroller as well as the plaintexts used for the encryption process. Power traces and plaintexts are stored in different CSV files, and they can simply be accessible by extracting the zip files named as ExampleProjectFiles%.zip. 
+
 ## Acknowledgement
 Special thanks to Dr. Ali Jahanian (https://scholar.google.com/citations?user=gTht4nwAAAAJ&hl=en) and Hamed Hosseintalaee (https://scholar.google.com/citations?user=g3ETtdAAAAAJ&hl=en) for providing the necessary files, including power traces and their corresponding plaintexts, for the example project in this repository 
