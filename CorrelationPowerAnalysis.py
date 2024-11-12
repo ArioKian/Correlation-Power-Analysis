@@ -39,6 +39,7 @@ class CpaOnAES128:
         self.maxCorrForEachKeyHypo = None
         self.gradualMaxCorrForEachKeyHypo = []
         self.stepSizes = []
+        self.recoveredKeys = np.full(16, np.nan)
     
     def GetKey(self):
         return self.key        
@@ -55,6 +56,9 @@ class CpaOnAES128:
     def GetPowerTraces(self):
         return self.powerTraces
 
+    def GetRecoveredKeys(self):
+        return self.recoveredKeys
+    
     def Sbox(self, inp):
         return self.sboxTable[inp]
 
@@ -65,7 +69,7 @@ class CpaOnAES128:
         return self.HammingWeight(num1^num2)
 
     def CreateHypothesisMatrix(self, byteNumber):
-        print("Creating Hypothesis Matrix:")
+        print(f"Creating Hypothesis Matrix (Byte Number {byteNumber}):")
         keyHypo = [i for i in range(256)]
         self.hypothesisMatrix = np.zeros((len(self.plainTexts), len(keyHypo)))
         for i in range(len(self.plainTexts)):
@@ -76,7 +80,7 @@ class CpaOnAES128:
         print("")
 
     def GradualCreateHypothesisMatrix(self, byteNumber, numOfTracesUsed):
-        print(f"Creating Hypothesis Matrix For {numOfTracesUsed} Number of Traces:")
+        print(f"Creating Hypothesis Matrix For {numOfTracesUsed} Number Of Traces (Byte Number {byteNumber}):")
         keyHypo = [i for i in range(256)]
         self.hypothesisMatrix = np.zeros((len(self.plainTextsTemp), len(keyHypo)))
         for i in range(len(self.plainTextsTemp)):
@@ -204,6 +208,7 @@ class CpaOnAES128:
         self.FindKeyHypoWithMaxCorr()
         print(f"First Key Byte Value: Dec: {self.firstKeyByte}, Hex: {hex(self.firstKeyByte)}")
         #plt.plot(self.maxCorrForEachKeyHypo)
+        self.recoveredKeys[0] = self.firstKeyByte
         self.PlotCorrelationGraph()
 
 
@@ -229,6 +234,7 @@ class CpaOnAES128:
             self.FindKeyHypoWithMaxCorr()
             print(f"First Key Byte Value for {numOfTracesUsed} number of traces: Dec: {self.firstKeyByte}, Hex: {hex(self.firstKeyByte)}")
         print(f"First Key Byte Value: Dec: {self.firstKeyByte}, Hex: {hex(self.firstKeyByte)}")
+        self.recoveredKeys[0] = self.firstKeyByte
         self.PlotGradualCorrelationGraph()
         
 
@@ -243,6 +249,7 @@ class CpaOnAES128:
         self.FindKeyHypoWithMaxCorr()
         print(f"Key Byte Num{keyByteNum} Value: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
         #plt.plot(self.maxCorrForEachKeyHypo)
+        self.recoveredKeys[keyByteNum-1] = self.nthKeyByte
         self.PlotCorrelationGraph()
 
 
@@ -259,8 +266,8 @@ class CpaOnAES128:
             self.plainTextsTemp = self.plainTexts[0:numOfTracesUsed,:]
             self.powerTracesTemp = np.zeros([numOfTracesUsed,self.powerTraces.shape[1]])
             self.powerTracesTemp = self.powerTraces[0:numOfTracesUsed,:]
-            self.GradualCreateHypothesisMatrix(keyByteNum-1)
-            self.GradualCreateCorrelationMatrix()
+            self.GradualCreateHypothesisMatrix(keyByteNum-1, numOfTracesUsed)
+            self.GradualCreateCorrelationMatrix(numOfTracesUsed)
             self.FindMaxCorrValueForEachKeyHypo()
             self.gradualMaxCorrForEachKeyHypo.append(self.maxCorrForEachKeyHypo)
             currentStepSize = currentStepSize + stepSize
@@ -268,6 +275,7 @@ class CpaOnAES128:
             self.FindKeyHypoWithMaxCorr()
             print(f"Key Byte Num{keyByteNum} Value for {numOfTracesUsed} number of traces: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
         print(f"Key Byte Num{keyByteNum} Value: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
+        self.recoveredKeys[keyByteNum-1] = self.nthKeyByte
         self.PlotGradualCorrelationGraph()
         
 
