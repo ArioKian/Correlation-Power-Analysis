@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import os
+from progress.spinner import MoonSpinner
 
 class CpaOnAES128:
     sboxTable = (
@@ -32,6 +33,7 @@ class CpaOnAES128:
         self.isNthKeyByte = False
         self.plainTexts = None
         self.powerTraces = None
+        self.correctKey = None
         self.plainTextsTemp = None
         self.powerTracesTemp = None
         self.hypothesisMatrix = None
@@ -40,6 +42,14 @@ class CpaOnAES128:
         self.gradualMaxCorrForEachKeyHypo = []
         self.stepSizes = []
         self.recoveredKeys = np.full(16, np.nan)
+        self.correlarionForKeyRecovered = None
+        self.progressBarEnabled = False
+
+    def enableProgressBar(self):
+        self.progressBarEnabled = True
+    
+    def disableProgressBar(self):
+        self.progressBarEnabled = False
     
     def GetKey(self):
         return self.key        
@@ -49,6 +59,12 @@ class CpaOnAES128:
 
     def SetPlainTexts(self, plainTexts):
         self.plainTexts = plainTexts
+
+    def SetCorrectKey(self, correctKey):
+        self.correctKey = correctKey
+
+    def GetCorrectKey(self):
+        return self.correctKey
 
     def GetPlainTexts(self):
         return self.plainTexts
@@ -69,26 +85,34 @@ class CpaOnAES128:
         return self.HammingWeight(num1^num2)
 
     def CreateHypothesisMatrix(self, byteNumber):
-        print(f"Creating Hypothesis Matrix (Byte Number {byteNumber}):")
+        print(f"Creating Hypothesis Matrix (Byte Number {byteNumber+1}):")
         keyHypo = [i for i in range(256)]
         self.hypothesisMatrix = np.zeros((len(self.plainTexts), len(keyHypo)))
-        for i in range(len(self.plainTexts)):
-            for j in range(len(keyHypo)):
-                sboxResult = self.Sbox(self.plainTexts[i][byteNumber] ^ keyHypo[j])
-                self.hypothesisMatrix[i][j] = self.HammingWeight(sboxResult)
-            self.ProgressBar(i,len(self.plainTexts)-1)
-        print("")
+        with MoonSpinner('Processing…') as bar:
+            for i in range(len(self.plainTexts)):
+                for j in range(len(keyHypo)):
+                    sboxResult = self.Sbox(self.plainTexts[i][byteNumber] ^ keyHypo[j])
+                    self.hypothesisMatrix[i][j] = self.HammingWeight(sboxResult)
+                bar.next()
+                if(self.progressBarEnabled):
+                    self.ProgressBar(i,len(self.plainTexts)-1)
+            if(self.progressBarEnabled):
+                print("")
 
     def GradualCreateHypothesisMatrix(self, byteNumber, numOfTracesUsed):
-        print(f"Creating Hypothesis Matrix For {numOfTracesUsed} Number Of Traces (Byte Number {byteNumber}):")
+        print(f"Creating Hypothesis Matrix For {numOfTracesUsed} Number Of Traces (Byte Number {byteNumber+1}):")
         keyHypo = [i for i in range(256)]
         self.hypothesisMatrix = np.zeros((len(self.plainTextsTemp), len(keyHypo)))
-        for i in range(len(self.plainTextsTemp)):
-            for j in range(len(keyHypo)):
-                sboxResult = self.Sbox(self.plainTextsTemp[i][byteNumber] ^ keyHypo[j])
-                self.hypothesisMatrix[i][j] = self.HammingWeight(sboxResult)
-            self.ProgressBar(i,len(self.plainTextsTemp)-1)
-        print("")
+        with MoonSpinner('Processing…') as bar:
+            for i in range(len(self.plainTextsTemp)):
+                for j in range(len(keyHypo)):
+                    sboxResult = self.Sbox(self.plainTextsTemp[i][byteNumber] ^ keyHypo[j])
+                    self.hypothesisMatrix[i][j] = self.HammingWeight(sboxResult)
+                bar.next()
+                if(self.progressBarEnabled):
+                    self.ProgressBar(i,len(self.plainTextsTemp)-1)
+            if(self.progressBarEnabled):
+                print("")
 
 
     def NumpyPearsonCorrelation(self, h , p):
@@ -97,35 +121,49 @@ class CpaOnAES128:
     def CreateCorrelationMatrix(self):
         print("Creating Correlation Matrix:")
         self.correlationMatrix = np.zeros([256,self.powerTraces.shape[1]])
-        for i in range(256):
-            for j in range(self.powerTraces.shape[1]):
-                self.correlationMatrix[i][j] = self.NumpyPearsonCorrelation(self.hypothesisMatrix[:,i] , self.powerTraces[:,j])
-            self.ProgressBar(i,255)
-        print("")    
+        with MoonSpinner('Processing…') as bar:
+            for i in range(256):
+                for j in range(self.powerTraces.shape[1]):
+                    self.correlationMatrix[i][j] = self.NumpyPearsonCorrelation(self.hypothesisMatrix[:,i] , self.powerTraces[:,j])
+                bar.next()
+                if(self.progressBarEnabled):
+                    self.ProgressBar(i,255)
+            if(self.progressBarEnabled):
+                print("")    
 
 
     def GradualCreateCorrelationMatrix(self, numOfTracesUsed):
         print(f"Creating Correlation Matrix For {numOfTracesUsed} Number of Traces:")
         self.correlationMatrix = np.zeros([256,self.powerTracesTemp.shape[1]])
-        for i in range(256):
-            for j in range(self.powerTracesTemp.shape[1]):
-                self.correlationMatrix[i][j] = self.NumpyPearsonCorrelation(self.hypothesisMatrix[:,i] , self.powerTracesTemp[:,j])
-            self.ProgressBar(i,255)
-        print("")
+        with MoonSpinner('Processing…') as bar:
+            for i in range(256):
+                for j in range(self.powerTracesTemp.shape[1]):
+                    self.correlationMatrix[i][j] = self.NumpyPearsonCorrelation(self.hypothesisMatrix[:,i] , self.powerTracesTemp[:,j])
+                bar.next()
+                if(self.progressBarEnabled):
+                    self.ProgressBar(i,255)
+            if(self.progressBarEnabled):
+                print("")
 
     
 
     def FindMaxCorrValueForEachKeyHypo(self):
         print("Analyzing...")
         self.maxCorrForEachKeyHypo = np.zeros([256])
-        for i in range(256):
-            maxCorrValIndex = np.argmax(abs(self.correlationMatrix[i]))
-            self.maxCorrForEachKeyHypo[i]=self.correlationMatrix[i][maxCorrValIndex]
-            self.ProgressBar(i,255)
-        print("")
+        with MoonSpinner('Processing…') as bar:
+            for i in range(256):
+                maxCorrValIndex = np.argmax(abs(self.correlationMatrix[i]))
+                self.maxCorrForEachKeyHypo[i]=self.correlationMatrix[i][maxCorrValIndex]
+                bar.next()
+                if(self.progressBarEnabled):
+                    self.ProgressBar(i,255)
+            if(self.progressBarEnabled):
+                print("")
 
     def FindKeyHypoWithMaxCorr(self):
         KeyVal = np.argmax(abs(self.maxCorrForEachKeyHypo))
+        self.correlarionForKeyRecovered = self.correlationMatrix[KeyVal]
+        #print("correlarionForKeyRecovered: ", self.correlarionForKeyRecovered)
         if(self.isAllKeyBytes):
             self.allKeyBytes.append(KeyVal)
         if(self.isFirstKeyByte):
@@ -133,33 +171,67 @@ class CpaOnAES128:
         if(self.isNthKeyByte):
             self.nthKeyByte = KeyVal
 
-    def PlotCorrelationGraph(self):   
+    def PlotCorrelationGraph(self, targetByte=None):   
         self.CheckOutputsDirectory()
         
-        xmax = np.argmax(self.maxCorrForEachKeyHypo)
-        ymax = self.maxCorrForEachKeyHypo.max()
+        xmax = np.argmax(abs(self.maxCorrForEachKeyHypo))
+        ymax = self.maxCorrForEachKeyHypo[xmax]
         ymin = self.maxCorrForEachKeyHypo.min()
 
-        fig, ax = plt.subplots(1,1,figsize=(10, 6))
-        ax.set_title("Final Correlation Value for Each Hypothesis")
-        ax.set_xlabel("Key Byte Hypothesis")
-        ax.set_ylabel("correlation value")
-        ax.set_ylim(ymin-0.2, ymax+0.2)
-        ax.stem(self.maxCorrForEachKeyHypo)
+        correctKeyPlot = np.zeros(self.maxCorrForEachKeyHypo.shape[0])
+        correctKeyPlot[self.correctKey[targetByte-1]] = self.maxCorrForEachKeyHypo[self.correctKey[targetByte-1]]
 
-        text= "KeyValue={}, CorrValue={:.3f}".format(xmax, ymax)
+        recoveredKeyPlot = np.zeros(self.maxCorrForEachKeyHypo.shape[0])
+        recoveredKeyPlot[xmax]=ymax
+
+        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(12, 8))
+        ax1.set_title(f"Final Correlation Value for Each Key Hypothesis (Byte Number {targetByte})")
+        ax1.set_xlabel("Key Byte Hypothesis")
+        ax1.set_ylabel("correlation value")
+        ax1.set_ylim(ymin+(ymin/2), ymax+(ymax/2))
+        markerline1, stemline1, baseline1, = ax1.stem(self.maxCorrForEachKeyHypo, linefmt='-', basefmt='C2-')
+        markerline2, stemline2, baseline2, =ax1.stem(recoveredKeyPlot, linefmt='red', markerfmt='.' , label="RecoveredKey", basefmt='C2-')
+        markerline3, stemline3, baseline3, =ax1.stem(correctKeyPlot, linefmt='green', markerfmt='.' , label="ExpectedKey", basefmt='C2-')
+        # leg = ax1.legend(bbox_to_anchor=(0.75, 1.15), ncol=2)
+        # leg = ax1.legend(loc="upper left")
+
+        text= "RecoveredKeyValue={}, CorrValue={:.3f}".format(xmax, ymax)
         bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
         arrowprops=dict(arrowstyle="->",connectionstyle="angle,angleA=0,angleB=60")
         kw = dict(xycoords='data',textcoords="axes fraction",
                   arrowprops=arrowprops, bbox=bbox_props, ha="right", va="top")
-        ax.annotate(text, xy=(xmax, ymax), xytext=(0.99,0.99), **kw)
-        plt.savefig("./Outputs/singleRunOutput.jpg")
-        plt.savefig("./Outputs/singleRunOutput.pdf")
+        ax1.annotate(text, xy=(xmax, ymax), xytext=(0.99,0.99), **kw)
+
+        text= "ExpectedKey={}".format(self.correctKey[targetByte-1])
+        bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
+        # arrowprops=dict(arrowstyle="->",connectionstyle="angle,angleA=180,angleB=60")
+        arrowprops=dict(arrowstyle="->")
+        kw = dict(xycoords='data',textcoords="axes fraction",
+                  arrowprops=arrowprops, bbox=bbox_props, ha="left", va="bottom")
+        ax1.annotate(text, xy=(self.correctKey[targetByte-1], correctKeyPlot[self.correctKey[targetByte-1]]), xytext=(0.01,0.01), **kw)
+
+        ax2.set_title("Correlation Value for Each Time Sample For the Recovered Key\n(Shows Main Leakage Points)")
+        ax2.set_xlabel("Power Trace Time Sample Points")
+        ax2.set_ylabel("correlation value")
+        ax2.stem(self.correlarionForKeyRecovered)
+        
+        fig.suptitle("CPA Output using HW Leakage Model")
+        fig.subplots_adjust(hspace=0.5)
+
+        # plt.setp(markerline1, markersize = 3)
+        plt.setp(stemline1, linewidth = 1.2)
+        # plt.setp(markerline2, markersize = 8)
+        plt.setp(stemline2, linewidth = 3)
+        # plt.setp(markerline3, markersize = 8)
+        plt.setp(stemline3, linewidth = 3)
+        
+        plt.savefig("./Outputs/cpaSingleRunOutput_Byte{targetByte}.jpg")
+        plt.savefig("./Outputs/cpaSingleRunOutput_Byte{targetByte}.pdf")
         plt.show()
         
 
     
-    def PlotGradualCorrelationGraph(self):
+    def PlotGradualCorrelationGraph(self, targetByte=None):
         self.CheckOutputsDirectory()
         
         xmax = np.argmax(self.maxCorrForEachKeyHypo)
@@ -167,9 +239,9 @@ class CpaOnAES128:
         ymin = self.maxCorrForEachKeyHypo.min()
 
         fig, (ax1,ax2) = plt.subplots(2,1,figsize=(8, 8))
-        ax1.set_title("Final Correlation Value for Each Hypothesis")
+        ax1.set_title(f"Final Correlation Value for Each Key Hypothesis (Byte Number {targetByte})")
         ax1.set_xlabel("Key Byte Hypothesis")
-        ax1.set_ylabel("correlation value")
+        ax1.set_ylabel("Correlation Value")
         ax1.set_ylim(ymin-0.2, ymax+0.2)
         ax1.stem(self.maxCorrForEachKeyHypo)
 
@@ -181,7 +253,7 @@ class CpaOnAES128:
         ax1.annotate(text, xy=(xmax, ymax), xytext=(0.99,0.99), **kw)
         ax2.set_title("Gradual Correlation Value for Each Hypothesis")
         ax2.set_xlabel("Number of Traces Used")
-        ax2.set_ylabel("correlation value")
+        ax2.set_ylabel("Correlation Value")
         
         gradualCorrForEachKeyHypo = np.zeros([256,len(self.gradualMaxCorrForEachKeyHypo)])
         for j in range(256):
@@ -192,8 +264,9 @@ class CpaOnAES128:
             ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[i], color="gray")
         ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[xmax], color="red")
         fig.subplots_adjust(hspace=0.5)
-        plt.savefig("./Outputs/gradualRunOutput.jpg")
-        plt.savefig("./Outputs/gradualRunOutput.pdf")
+        fig.suptitle("Gradual CPA Output using HW Leakage Model")
+        plt.savefig(f"./Outputs/cpaGradualRunOutput_Byte{targetByte}.jpg")
+        plt.savefig(f"./Outputs/cpaGradualRunOutput_Byte{targetByte}.pdf")
         plt.show()
     
 
@@ -209,7 +282,7 @@ class CpaOnAES128:
         print(f"First Key Byte Value: Dec: {self.firstKeyByte}, Hex: {hex(self.firstKeyByte)}")
         #plt.plot(self.maxCorrForEachKeyHypo)
         self.recoveredKeys[0] = self.firstKeyByte
-        self.PlotCorrelationGraph()
+        self.PlotCorrelationGraph(1)
 
 
     def GradualCpaOnFirstKeyByte(self, stepSize):
@@ -235,7 +308,7 @@ class CpaOnAES128:
             print(f"First Key Byte Value for {numOfTracesUsed} number of traces: Dec: {self.firstKeyByte}, Hex: {hex(self.firstKeyByte)}")
         print(f"First Key Byte Value: Dec: {self.firstKeyByte}, Hex: {hex(self.firstKeyByte)}")
         self.recoveredKeys[0] = self.firstKeyByte
-        self.PlotGradualCorrelationGraph()
+        self.PlotGradualCorrelationGraph(1)
         
 
 
@@ -250,7 +323,7 @@ class CpaOnAES128:
         print(f"Key Byte Num{keyByteNum} Value: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
         #plt.plot(self.maxCorrForEachKeyHypo)
         self.recoveredKeys[keyByteNum-1] = self.nthKeyByte
-        self.PlotCorrelationGraph()
+        self.PlotCorrelationGraph(keyByteNum)
 
 
     def GradualCpaOnDesiredKeyByte(self, keyByteNum, stepSize):
@@ -276,7 +349,7 @@ class CpaOnAES128:
             print(f"Key Byte Num{keyByteNum} Value for {numOfTracesUsed} number of traces: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
         print(f"Key Byte Num{keyByteNum} Value: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
         self.recoveredKeys[keyByteNum-1] = self.nthKeyByte
-        self.PlotGradualCorrelationGraph()
+        self.PlotGradualCorrelationGraph(keyByteNum)
         
 
     def ProgressBar(self, count_value, total, suffix=''):
