@@ -190,8 +190,8 @@ class CpaOnAES128:
         ax1.set_ylabel("correlation value")
         ax1.set_ylim(ymin+(ymin/2), ymax+(ymax/2))
         markerline1, stemline1, baseline1, = ax1.stem(self.maxCorrForEachKeyHypo, linefmt='-', basefmt='C2-')
-        markerline2, stemline2, baseline2, =ax1.stem(recoveredKeyPlot, linefmt='red', markerfmt='.' , label="RecoveredKey", basefmt='C2-')
         markerline3, stemline3, baseline3, =ax1.stem(correctKeyPlot, linefmt='green', markerfmt='.' , label="ExpectedKey", basefmt='C2-')
+        markerline2, stemline2, baseline2, =ax1.stem(recoveredKeyPlot, linefmt='red', markerfmt='.' , label="RecoveredKey", basefmt='C2-')
         # leg = ax1.legend(bbox_to_anchor=(0.75, 1.15), ncol=2)
         # leg = ax1.legend(loc="upper left")
 
@@ -221,9 +221,9 @@ class CpaOnAES128:
         # plt.setp(markerline1, markersize = 3)
         plt.setp(stemline1, linewidth = 1.2)
         # plt.setp(markerline2, markersize = 8)
-        plt.setp(stemline2, linewidth = 3)
+        plt.setp(stemline2, linewidth = 1.2)
         # plt.setp(markerline3, markersize = 8)
-        plt.setp(stemline3, linewidth = 3)
+        plt.setp(stemline3, linewidth = 4)
         
         plt.savefig("./Outputs/cpaSingleRunOutput_Byte{targetByte}.jpg")
         plt.savefig("./Outputs/cpaSingleRunOutput_Byte{targetByte}.pdf")
@@ -234,16 +234,37 @@ class CpaOnAES128:
     def PlotGradualCorrelationGraph(self, targetByte=None):
         self.CheckOutputsDirectory()
         
-        xmax = np.argmax(self.maxCorrForEachKeyHypo)
-        ymax = self.maxCorrForEachKeyHypo.max()
+        # xmax = np.argmax(self.maxCorrForEachKeyHypo)
+        # ymax = self.maxCorrForEachKeyHypo.max()
+        # ymin = self.maxCorrForEachKeyHypo.min()
+
+        # fig, (ax1,ax2) = plt.subplots(2,1,figsize=(12, 8))
+        # ax1.set_title(f"Final Correlation Value for Each Key Hypothesis (Byte Number {targetByte})")
+        # ax1.set_xlabel("Key Byte Hypothesis")
+        # ax1.set_ylabel("Correlation Value")
+        # ax1.set_ylim(ymin-0.2, ymax+0.2)
+        # ax1.stem(self.maxCorrForEachKeyHypo)
+
+        xmax = np.argmax(abs(self.maxCorrForEachKeyHypo))
+        ymax = self.maxCorrForEachKeyHypo[xmax]
         ymin = self.maxCorrForEachKeyHypo.min()
 
-        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(8, 8))
+        correctKeyPlot = np.zeros(self.maxCorrForEachKeyHypo.shape[0])
+        correctKeyPlot[self.correctKey[targetByte-1]] = self.maxCorrForEachKeyHypo[self.correctKey[targetByte-1]]
+
+        recoveredKeyPlot = np.zeros(self.maxCorrForEachKeyHypo.shape[0])
+        recoveredKeyPlot[xmax]=ymax
+
+        fig, (ax1,ax2) = plt.subplots(2,1,figsize=(12, 8))
         ax1.set_title(f"Final Correlation Value for Each Key Hypothesis (Byte Number {targetByte})")
         ax1.set_xlabel("Key Byte Hypothesis")
-        ax1.set_ylabel("Correlation Value")
-        ax1.set_ylim(ymin-0.2, ymax+0.2)
-        ax1.stem(self.maxCorrForEachKeyHypo)
+        ax1.set_ylabel("correlation value")
+        ax1.set_ylim(ymin+(ymin/2), ymax+(ymax/2))
+        markerline1, stemline1, baseline1, = ax1.stem(self.maxCorrForEachKeyHypo, linefmt='-', basefmt='C2-')
+        markerline3, stemline3, baseline3, =ax1.stem(correctKeyPlot, linefmt='green', markerfmt='.' , label="ExpectedKey", basefmt='C2-')
+        markerline2, stemline2, baseline2, =ax1.stem(recoveredKeyPlot, linefmt='red', markerfmt='.' , label="RecoveredKey", basefmt='C2-')
+        # leg = ax1.legend(bbox_to_anchor=(0.75, 1.15), ncol=2)
+        # leg = ax1.legend(loc="upper left")
 
         text= "KeyValue={}, CorrValue={:.3f}".format(xmax, ymax)
         bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
@@ -251,6 +272,16 @@ class CpaOnAES128:
         kw = dict(xycoords='data',textcoords="axes fraction",
                   arrowprops=arrowprops, bbox=bbox_props, ha="right", va="top")
         ax1.annotate(text, xy=(xmax, ymax), xytext=(0.99,0.99), **kw)
+
+        text= "ExpectedKey={}".format(self.correctKey[targetByte-1])
+        bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
+        # arrowprops=dict(arrowstyle="->",connectionstyle="angle,angleA=180,angleB=60")
+        arrowprops=dict(arrowstyle="->")
+        kw = dict(xycoords='data',textcoords="axes fraction",
+                  arrowprops=arrowprops, bbox=bbox_props, ha="left", va="bottom")
+        ax1.annotate(text, xy=(self.correctKey[targetByte-1], correctKeyPlot[self.correctKey[targetByte-1]]), xytext=(0.01,0.01), **kw)
+        
+        
         ax2.set_title("Gradual Correlation Value for Each Hypothesis")
         ax2.set_xlabel("Number of Traces Used")
         ax2.set_ylabel("Correlation Value")
@@ -262,9 +293,20 @@ class CpaOnAES128:
 
         for i in range(256):
             ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[i], color="gray")
-        ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[xmax], color="red")
+        ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[self.correctKey[targetByte-1]], color="green",linewidth=5, alpha=0.5, label="expected Key")
+        ax2.plot(self.stepSizes, gradualCorrForEachKeyHypo[xmax], color="red", label="recovered Key")
+        leg = ax2.legend(loc="upper right")
+        
         fig.subplots_adjust(hspace=0.5)
         fig.suptitle("Gradual CPA Output using HW Leakage Model")
+        
+        # plt.setp(markerline1, markersize = 3)
+        plt.setp(stemline1, linewidth = 1.2)
+        # plt.setp(markerline2, markersize = 8)
+        plt.setp(stemline2, linewidth = 1.2)
+        # plt.setp(markerline3, markersize = 8)
+        plt.setp(stemline3, linewidth = 4)
+        
         plt.savefig(f"./Outputs/cpaGradualRunOutput_Byte{targetByte}.jpg")
         plt.savefig(f"./Outputs/cpaGradualRunOutput_Byte{targetByte}.pdf")
         plt.show()
