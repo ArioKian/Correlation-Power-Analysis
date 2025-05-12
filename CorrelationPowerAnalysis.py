@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import os
+import pandas as pd
 from progress.spinner import MoonSpinner
 
 class CpaOnAES128:
@@ -310,8 +311,17 @@ class CpaOnAES128:
         plt.savefig(f"./Outputs/cpaGradualRunOutput_Byte{targetByte}.jpg")
         plt.savefig(f"./Outputs/cpaGradualRunOutput_Byte{targetByte}.pdf")
         plt.show()
-    
 
+
+    def WriteCsvOutputFiles(self, mode="Single"):
+        if mode=="Single":
+            dFmaxCorrForEachKeyHypo = pd.DataFrame(abs(self.maxCorrForEachKeyHypo))
+            dFmaxCorrForEachKeyHypo.to_csv("./Outputs/finalMaxCorrForEachKeyHypo.csv", header=False, index=False)
+        if mode=="Gradual":
+            dFmaxCorrForEachKeyHypo = pd.DataFrame(abs(self.maxCorrForEachKeyHypo))
+            dFmaxCorrForEachKeyHypo.to_csv("./Outputs/finalMaxCorrForEachKeyHypo.csv", header=False, index=False)
+            dFgradualMaxCorrForEachKeyHypo = pd.DataFrame(abs(self.gradualMaxCorrForEachKeyHypo))
+            dFgradualMaxCorrForEachKeyHypo.to_csv("./Outputs/gradualMaxCorrForEachKeyHypo.csv", header=False, index=False)
     
     def CpaOnFirstKeyByte(self):
         self.isFirstKeyByte = True
@@ -325,6 +335,7 @@ class CpaOnAES128:
         #plt.plot(self.maxCorrForEachKeyHypo)
         self.recoveredKeys[0] = self.firstKeyByte
         self.PlotCorrelationGraph(1)
+        self.WriteCsvOutputFiles("Single")
 
 
     def GradualCpaOnFirstKeyByte(self, stepSize):
@@ -351,6 +362,7 @@ class CpaOnAES128:
         print(f"First Key Byte Value: Dec: {self.firstKeyByte}, Hex: {hex(self.firstKeyByte)}")
         self.recoveredKeys[0] = self.firstKeyByte
         self.PlotGradualCorrelationGraph(1)
+        self.WriteCsvOutputFiles("Gradual")
         
 
 
@@ -366,6 +378,7 @@ class CpaOnAES128:
         #plt.plot(self.maxCorrForEachKeyHypo)
         self.recoveredKeys[keyByteNum-1] = self.nthKeyByte
         self.PlotCorrelationGraph(keyByteNum)
+        self.WriteCsvOutputFiles("Single")
 
 
     def GradualCpaOnDesiredKeyByte(self, keyByteNum, stepSize):
@@ -392,6 +405,7 @@ class CpaOnAES128:
         print(f"Key Byte Num{keyByteNum} Value: Dec: {self.nthKeyByte}, Hex: {hex(self.nthKeyByte)}")
         self.recoveredKeys[keyByteNum-1] = self.nthKeyByte
         self.PlotGradualCorrelationGraph(keyByteNum)
+        self.WriteCsvOutputFiles("Gradual")
         
 
     def ProgressBar(self, count_value, total, suffix=''):
@@ -422,3 +436,45 @@ class CpaOnAES128:
         else:
             os.makedirs('Outputs')
         
+
+
+
+class RankEstimation:
+    
+    def __init__(self):
+        self.scoreMatrix = None
+        self.guessMatrix = []
+        self.sortedScores = None
+        self.rankValues = None
+
+    def SetScoreMatrix(self, scoreMatrix):
+        self.scoreMatrix = scoreMatrix
+        if(len(self.scoreMatrix.shape)==1):
+            print("INFO: You have entered a single vector of scores. Rank estimation will be performed in Single Run Mode")
+        if(len(self.scoreMatrix.shape)==2):
+            print("INFO: You have entered multiple vectors of scores. It will be assumed that it is a result of gradual scores generation. Rank estimation will be performed in Gradual Run Mode")
+
+    def GetScoreMatrix(self):
+        return self.scoreMatrix
+
+    def SortScores(self):
+        print("INFO: Sorting the Scores Matrix...")
+        
+        self.guessMatrix = []
+        self.sortedScores = None
+
+        if(len(self.scoreMatrix.shape)==1):
+            self.rankValues = np.zeros(len(self.scoreMatrix) , dtype='uint8')
+            self.sortedScores = -np.sort(-self.scoreMatrix)  ## the numpy.sort(array) always sorts in ascending mode ==> to do it in descending mode : -np.sort(-array)
+            print(self.sortedScores)
+            for i in self.sortedScores:
+                self.guessMatrix.append(np.where(self.scoreMatrix == i)[0][0])
+            
+            rank = 0
+            for i in self.guessMatrix:
+                print(i)
+                self.rankValues[i]=rank
+                rank=rank+1
+
+            print(self.rankValues)
+
